@@ -13,9 +13,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append("../tools/")
 from feature_format import featureFormat, targetFeatureSplit
-
-
-
+from sklearn.cluster import KMeans
 
 def Draw(pred, features, poi, mark_poi=False, name="image.png", f1_name="feature 1", f2_name="feature 2"):
     """ some plotting code designed to help you visualize your clusters """
@@ -36,20 +34,37 @@ def Draw(pred, features, poi, mark_poi=False, name="image.png", f1_name="feature
     plt.savefig(name)
     plt.show()
 
-
+def min_max_feature(dictionary, feature):
+    """ return the minimum and maximum values for a feature """
+    keys = dictionary.keys()
+    feature_list = [dictionary[key][feature] for key in keys]
+    feature_list.sort()
+    while 'NaN' in feature_list: feature_list.remove('NaN')
+    minimum = min(feature_list)
+    maximum = max(feature_list)
+    return minimum, maximum
 
 ### load in the dict of dicts containing all the data on each person in the dataset
 data_dict = pickle.load( open("../final_project/final_project_dataset.pkl", "r") )
 ### there's an outlier--remove it! 
 data_dict.pop("TOTAL", 0)
 
+# get min and max of "exercised_stock_options"
+minimum, maximum = min_max_feature(data_dict, "exercised_stock_options")
+print('minimum exercised_stock_options = {}'.format(minimum))
+print('maximum exercised_stock_options = {}'.format(maximum))
+# get min and max of "salary"
+minimum, maximum = min_max_feature(data_dict, "salary")
+print('minimum salary = {}'.format(minimum))
+print('maximum salary = {}'.format(maximum))
 
 ### the input features we want to use 
 ### can be any key in the person-level dictionary (salary, director_fees, etc.) 
 feature_1 = "salary"
 feature_2 = "exercised_stock_options"
+feature_3 = "total_payments"
 poi  = "poi"
-features_list = [poi, feature_1, feature_2]
+features_list = [poi, feature_1, feature_2, feature_3]
 data = featureFormat(data_dict, features_list )
 poi, finance_features = targetFeatureSplit( data )
 
@@ -58,19 +73,21 @@ poi, finance_features = targetFeatureSplit( data )
 ### you'll want to change this line to 
 ### for f1, f2, _ in finance_features:
 ### (as it's currently written, the line below assumes 2 features)
-for f1, f2 in finance_features:
+for f1, f2, _ in finance_features:
     plt.scatter( f1, f2 )
+plt.gcf().axes[0].set_xlabel(feature_1)
+plt.gcf().axes[0].set_ylabel(feature_2)
 plt.show()
 
 ### cluster here; create predictions of the cluster labels
 ### for the data and store them to a list called pred
-
-
-
+kmeans = KMeans(n_clusters=2)
+kmeans.fit(finance_features)
+pred = kmeans.predict(finance_features)
 
 ### rename the "name" parameter when you change the number of features
 ### so that the figure gets saved to a different file
 try:
-    Draw(pred, finance_features, poi, mark_poi=False, name="clusters.pdf", f1_name=feature_1, f2_name=feature_2)
+    Draw(pred, finance_features, poi, mark_poi=False, name="clusters3.pdf", f1_name=feature_1, f2_name=feature_2)
 except NameError:
     print "no predictions object named pred found, no clusters to plot"
